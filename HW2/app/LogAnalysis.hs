@@ -74,6 +74,11 @@ getTimestamp Leaf = 0
 getTimestamp (Node _ (LogMessage _ timestamp _) _) = timestamp
 getTimestamp _ = error "bad timestamp in tree"
 
+build :: [LogMessage] -> MessageTree
+build [] = Leaf
+build (logMessage:[]) = insert logMessage Leaf
+build (logMessage:logs) = insert logMessage (build logs)
+
 -- Input / output
 
 main :: IO ()
@@ -96,10 +101,17 @@ main = do
     rootNode ==
     Node Leaf (LogMessage (Error 2) 562 "help help") Leaf))
 
+  let rightTree = insert (parseMessage "W 9836 mice in the air") (insert logMessage rootNode)
   putStrLn (show (
-    (insert (parseMessage "W 9836 mice in the air") rootNode) ==
-      Node Leaf (LogMessage (Error 2) 562 "help help") (Node Leaf (LogMessage Warning 9836 "mice in the air") Leaf)))
+    rightTree ==
+    Node Leaf (LogMessage (Error 2) 562 "help help") (Node Leaf (LogMessage (Error 2) 562 "help help") (Node Leaf (LogMessage Warning 9836 "mice in the air") Leaf))))
 
+  let leftTree = insert (parseMessage "W 1 mice in the air") (insert (parseMessage "W 2 mice in the air") rootNode)
   putStrLn (show (
-    (insert (parseMessage "W 1 mice in the air") rootNode) ==
-    Node (Node Leaf (LogMessage Warning 1 "mice in the air") Leaf) (LogMessage (Error 2) 562 "help help") Leaf))
+    leftTree ==
+    Node (Node (Node Leaf (LogMessage Warning 1 "mice in the air") Leaf) (LogMessage Warning 2 "mice in the air") Leaf) (LogMessage (Error 2) 562 "help help") Leaf))
+
+  let fullTree = (build [logMessage, (parseMessage "E 2 100 help help"), (parseMessage "W 1000 help help"), (parseMessage "I 150 help help")])
+  putStrLn (show (
+    fullTree ==
+    Node (Node Leaf (LogMessage (Error 2) 100 "help help") Leaf) (LogMessage Info 150 "help help") (Node (Node Leaf (LogMessage (Error 2) 562 "help help") Leaf) (LogMessage Warning 1000 "help help") Leaf)))
