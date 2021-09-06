@@ -43,12 +43,6 @@ parse logFile =
 
 -- Utility functions
 
-isError :: MessageType -> Bool
-isError messageType =
-  case messageType of
-    Error _ -> True
-    _       -> False
-
 isUnknown :: [String] -> Bool
 isUnknown message
   | code == "I" || code == "W"              = False
@@ -78,6 +72,19 @@ build :: [LogMessage] -> MessageTree
 build [] = Leaf
 build (logMessage:[]) = insert logMessage Leaf
 build (logMessage:logs) = insert logMessage (build logs)
+
+inOrder :: MessageTree -> [LogMessage]
+inOrder Leaf = []
+inOrder (Node Leaf logMessage Leaf) = [logMessage]
+inOrder (Node leftTree logMessage rightTree) =
+  (inOrder leftTree ++ [logMessage] ++ inOrder rightTree)
+
+whatWentWrong :: [LogMessage] -> [String]
+whatWentWrong [] = []
+whatWentWrong ((LogMessage (Error severity) _ message):logs)
+  | severity > 50 = ([message] ++ (whatWentWrong logs))
+  | otherwise     = whatWentWrong logs
+whatWentWrong (_:logs) = whatWentWrong logs
 
 -- Input / output
 
@@ -115,3 +122,8 @@ main = do
   putStrLn (show (
     fullTree ==
     Node (Node Leaf (LogMessage (Error 2) 100 "help help") Leaf) (LogMessage Info 150 "help help") (Node (Node Leaf (LogMessage (Error 2) 562 "help help") Leaf) (LogMessage Warning 1000 "help help") Leaf)))
+
+  let inOrderList = inOrder fullTree
+  putStrLn (show (
+    inOrderList ==
+    [LogMessage (Error 2) 100 "help help",LogMessage Info 150 "help help",LogMessage (Error 2) 562 "help help",LogMessage Warning 1000 "help help"]))
