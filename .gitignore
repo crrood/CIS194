@@ -4,5 +4,5 @@
 !*.hs
 !*.log
 !*.gitignore
-!/HW2/
-!/HW2/app
+!/HW*/
+!/HW*/app
